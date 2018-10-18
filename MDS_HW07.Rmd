@@ -1,0 +1,91 @@
+---
+title: "HW7"
+author: "Nashrah Ahmed"
+date: "October 28, 2017"
+output: html_document
+---
+```{r setup, include=FALSE}
+library(curl)
+library(httr)
+library(stringr)
+library(magrittr)
+library(httr)
+```
+
+Define URL, send simple GET request, content the response
+```{r}
+endpoint <- "https://data.lacity.org/resource/7fvc-faax.csv"
+
+parameter_response <-
+  GET("https://data.lacity.org/resource/7fvc-faax.csv")
+str(parameter_response, max.level=1)
+
+#status
+parameter_response$status_code
+
+content(parameter_response)
+
+#dimensions: 1000 x 36
+parameter_response
+
+```
+
+Access Token
+```{r}
+parameter_response2 <-
+  GET("https://data.lacity.org/resource/7fvc-faax.csv",
+      "$limit" = "10000", 
+      "$$app_token" = Sys.getenv("LACRIME_APP_TOKEN"))
+
+parameter_response2$status_code
+
+parameter_response2
+```
+
+Limiting my query
+```{r}
+parameter_response3 <-
+  GET("https://data.lacity.org/resource/7fvc-faax.json?weapon_used_cd=510&area_name=Olympic",
+      "$limit" = "10000", 
+      "$$app_token" = Sys.getenv("LACRIME_APP_TOKEN"))
+
+parameter_response3$status_code
+content(parameter_response3)
+
+#I filtered my query to only show crime data for when vehicles were stolen in Olympic, a main aterial road in LA.
+```
+
+Locations
+```{r}
+parameter_response4 <-
+  GET("https://data.lacity.org/resource/7fvc-faax.csv",
+      "$limit" = "50", 
+      "$$app_token" = Sys.getenv("LACRIME_APP_TOKEN"))
+df <- as.data.frame(content(parameter_response4))
+
+lng2 <- str_subset(df$location_1, "[-100-0]")
+lng <- as.data.frame(str_extract_all(lng2, "-[0-9][0-9][0-9][[:print:]][0-9][0-9][0-9][0-9]", simplify = TRUE), row.names = FALSE)
+lng
+
+lat3 <- str_subset(df$location_1, "[0-100]")
+lat2 <- str_extract_all(lat3, "[[:space:]][0-9][0-9][[:print:]][0-9][0-9][0-9][0-9]", simplify = TRUE)
+lat <- as.data.frame(str_extract_all(lat2, "[0-9][0-9][[:print:]][0-9][0-9][0-9][0-9]", simplify = TRUE), row.names = FALSE)
+lat
+
+for(i in 1:50){
+  latx <- as.character(lat$V1)[i]
+  lngx <- as.character(lng$V1)[i]
+  url <- str_c("https://maps.googleapis.com/maps/api/geocode/json?latlng=",latx,",",lngx,"&key=AIzaSyDY0GMHoLQ1xfV_xwdW-AcqPATfzcDdXd0")
+  if(http_error(url)) {
+    warning("error") }
+    else {
+  a <- GET(url)
+  b <- content(a)  
+  c <- b$result
+  d <- as.data.frame(c)
+  print(d$formatted_address)
+  }
+ Sys.sleep(0.1)
+}
+
+```

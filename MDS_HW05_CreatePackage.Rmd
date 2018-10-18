@@ -1,0 +1,104 @@
+---
+title: "HW5"
+author: "Nashrah Ahmed"
+date: "October 11, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+R.Version()
+system('g++ -v')
+system('where make')
+
+# Get the CRAN version of Devtools & Installing testthat
+install.packages("testthat")
+install.packages("devtools")
+install.packages("brew")
+install.packages("commonmark")
+
+library(devtools)
+
+# Get the development version of devtools
+devtools::install_github("hadley/devtools", force = TRUE)
+
+# Installing the development version of roxygen
+devtools::install_github("klutometis/roxygen", force = TRUE)
+
+library(devtools)
+has_devel
+```
+
+Create a package
+```{r}
+devtools::create("path/to/package/pkgname")
+```
+
+```{r}
+#edit decriptions for package and add a liscense and use_package to document package
+devtools::create("path/to/package/pkgname")
+
+#to find my current libraries
+.libPaths()
+```
+
+```{r}
+#documentation for function 
+
+#' Area of a Circle
+#'
+#' Allows a user to calculate geometric functions of a circle, including the circumference, area, chord, and the arc of a circle.
+  #' @param radius has to be number > 0, else error, pi = true value of pi "https://en.wikipedia.org/wiki/Pi"
+#' @keywords area
+#' @return pi multimplied by the radius squared
+#' @export
+#' @examples
+#' area_circle(2)
+#' area_circle(1:4)
+
+area_circle <- function(radius) {
+  stopifnot(radius > 0)
+  return(pi*radius^2)
+}
+
+devtools::document()
+
+```
+
+```{r}
+use_package()
+
+devtools::check()
+
+devtools::use_readme_rmd()
+```
+
+```{r}
+#Add dataset
+
+#' Price & Weight of Diamonds
+#'
+#' This data provides a random sample of prices and the associated carat (unit of weight) of diamonds.
+#'
+#' @usage{diamond}
+#' @format The diamond data set contains 53,940 observations on 1 variable (diamonds).
+#' \describe{
+#'   \item{carat}{Weight, in grams (0.2 - 5.0)}
+#'   \item{price}{Price, US dollars}
+#' }
+#' @source \url{http://www.diamondse.info/}
+
+```
+
+Create a vignette
+```{r}
+devtools::use_vignette("my-vignette")
+#title: "Vignette Title"
+#author: "Vignette Author"
+#date: "`r Sys.Date()`"
+#output: rmarkdown::html_vignette
+#vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
+```

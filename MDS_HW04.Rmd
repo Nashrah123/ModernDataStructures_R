@@ -1,0 +1,259 @@
+---
+title: "HW04"
+author: "Nashrah Ahmed"
+date: "October 11, 2017"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(WDI)
+library(dplyr)
+library(purrr)
+library(broom)
+library(data.table)
+library(magrittr)
+```
+
+1a: longest name
+```{r}
+content <- mget(ls("package:base"), inherits = TRUE)
+base_functions <- Filter(is.function, content)
+
+Function_Names <- (names(base_functions))
+Function_Length <- map(Function_Names, nchar)
+Function_Names[which.max(Function_Length)]
+```
+
+1b: top 10 functions with most arguments
+```{r}
+Args <- map(Function_Names, formals)
+Count_Args <- map(Args, length)
+Function_Names[which.max(Count_Args)]
+
+df <- do.call(rbind, Map(data.frame, Function_Names=Function_Names, Count_Args=Count_Args))
+
+df1 <- arrange(df, desc(Count_Args))
+
+df1[1:10,]
+```
+
+1c: how many functions with no arguments and how are they different
+```{r}
+Args_Null <- map(Args, is.null)
+Count_Args_Null <- length(Args_Null[Args_Null=="TRUE"])
+
+Count_Args_Null 
+
+#There are 226 functions with no arguments. These are called "primitive" functions which generate outcome based on an internally implemented function. For example, 'names', 'nargs', 'args', and etc. There is noted to be efficiency with these types of functions in the passing of arguments vs other types of functions.
+```
+
+2a) Highest and lowest infant mortality rates in 2015 by country & GDP per cap
+```{r}
+WDI <- WDI(country="all", indicator=c("NY.GDP.PCAP.PP.KD","SP.DYN.IMRT.IN"), start=1960, end=2016, extra=TRUE, cache=NULL)
+
+WDI_Data <- data.frame(WDI)
+names(WDI_Data)[names(WDI_Data) == 'NY.GDP.PCAP.PP.KD'] <- 'gdpcap'
+names(WDI_Data)[names(WDI_Data) == 'SP.DYN.IMRT.IN'] <- 'infmort'
+
+WDI_Data0 <- WDI_Data[complete.cases(WDI_Data), ]
+
+WDI_Data1 <- WDI_Data0 %>% 
+  filter(year == "2015")
+
+W1 <- arrange(WDI_Data1, desc(infmort))
+
+W2 <- W1 %>% 
+  group_by(country) %>%
+  head(n = 5)
+
+W3 <- W2 %>%
+  select(country, gdpcap)
+
+W4 <- arrange(WDI_Data1, desc(infmort))
+
+W5 <- W4 %>% 
+  group_by(country) %>%
+  tail(n = 5)
+
+W6 <- W5 %>%
+  select(country, gdpcap)
+
+X <- (merge(W3, W6, all = T))
+
+Final <- arrange(X, desc(gdpcap))
+Final
+```
+
+2b) Overall regression
+```{r}
+summary(lm(infmort ~ gdpcap, data=WDI_Data0))
+
+#test log results
+summary(lm(log(infmort) ~ log(gdpcap), data=WDI_Data0))
+
+```
+
+2b) Overall regression
+```{r}
+plot(log(WDI_Data0$infmort), log(WDI_Data0$gdpcap), main="Scatterplot", 
+     xlab="infant mortality rate, per 1000 live births", ylab="GDP Per Capita", pch=19)
+
+abline(lm(log(infmort) ~ log(gdpcap), data=WDI_Data0), col="green") 
+
+#As depicted below, there appears to linear relationship between GDP per capita and the rate of infant mortality: as GDP per capita declines the rate of infant mortality increases which may make intuitive sense given the relationship between GDP of a country and the socio-economic status of its citizens.
+```
+
+```{r}
+#Regression by region: log
+
+R_Table <- WDI_Data0 %>% 
+  split(WDI_Data0$region) %>% 
+  map(~ lm(log(infmort)~log(gdpcap), data= .)) %>%
+  map(~ coef(.)) %>% 
+  map(2) %>% 
+  bind_rows() %>% 
+  t %>% #tranpose rows and columns
+  as.data.frame() %>%
+  setDT(keep.rownames=TRUE) %>% 
+  setNames(c("region","coeff")) %>% 
+  arrange(desc(coeff))
+
+R_Table
+
+```
+
+```{r}
+#Regression by Country 
+
+C_Table <- WDI_Data0 %>% 
+  split(.$country) %>% 
+  map(~ lm(log(infmort)~log(gdpcap), data=.)) %>%
+  map(tidy) %>%
+  map(unlist) %>%
+  bind_rows() %>% 
+  t %>% #tranpose rows and columns
+  as.data.frame() %>% 
+  setDT(keep.rownames=TRUE) %>%
+  arrange(desc(V5)) %>% 
+  select(rn,V5) %>% 
+  setNames(c("Country", "p-v"))
+
+print(C_Table)
+#really high p-values w/logs
+
+#no logs
+C1_Table <- WDI_Data0 %>% 
+  split(.$country) %>% 
+  map(~ lm(infmort~gdpcap-1, data=.)) %>%
+  map(tidy) %>%
+  map(unlist) %>%
+  bind_rows() %>% 
+  t %>% #tranpose rows and columns
+  as.data.frame() %>% 
+  setDT(keep.rownames=TRUE) %>%
+  arrange(desc(V5)) %>% 
+  select(rn,V5) %>% 
+  setNames(c("Country", "p-v"))
+
+print(C1_Table)
+
+#The table below depicts countries by decreasing p-value. Given the p-value for Iraq is < 0.05, we can infer that that the full set regression models by country fall within the 95% confidence interval. However, the results by regions are relateivly strong for the log variables.
+```
+
+```{r}
+# Histogram of coeffs by country
+HC_Table <- WDI_Data0 %>% 
+  split(WDI_Data0$country) %>% 
+  map(~ lm(log(infmort)~log(gdpcap), data= .)) %>%
+  map(~ coef(.)) %>% 
+  map(2) %>%
+  bind_rows() %>% 
+  t %>% #tranpose rows and columns
+  as.data.frame() %>%
+  setDT(keep.rownames=TRUE) %>% 
+  setNames(c("region","coeff")) %>% 
+  arrange(desc(coeff))
+
+HC_Table
+
+coeff <- as.numeric(HC_Table$coeff)
+
+hist(coeff, xlab = "coeff", main = "Coefficients by Country")
+
+#Outliers:
+#Mexico	-3.977566		
+#Portugal	-4.023483		
+#Guinea	-4.147062		
+#Japan	-4.195205		
+#Oman	-4.259300
+
+#Madagascar	2.755126		
+#Comoros	1.685826		
+#Palau	1.432983		
+#Haiti	1.357037		
+#Kiribati 1.339419	
+
+```
+
+```{r}
+#square gdp per cap
+RegC_2 <- WDI_Data0 %>% 
+  split(.$country) %>% 
+  map(~ lm((infmort)~(poly(gdpcap,2))-1, data=.)) %>% 
+  map(tidy) %>%
+  map(unlist) %>% 
+  bind_rows() %>% 
+  t %>% #tranpose rows and columns
+  as.data.frame() %>% 
+  setDT(keep.rownames=TRUE) %>%  
+  select(rn,V3,V5) %>% 
+  setNames(c("country", "coeff", "pvalue"))
+
+print(RegC_2)
+
+#really high p-values
+
+```
+
+```{r}
+#Average R-Squared_Squared Term
+
+RegC_2_Average  <- WDI_Data0 %>% 
+  split(.$country) %>% 
+  map(~ lm((infmort)~(poly(gdpcap,2))-1, data=.)) %>% 
+  map(summary) %>%
+  map(glance) %>%
+  map(unlist) %>% 
+  bind_rows() %>% 
+  t %>% #tranpose rows and columns
+  as.data.frame() %>% 
+  select(V1) %>% 
+  filter(!is.nan(V1)) %>%
+  sapply(mean)
+
+RegC_2_Average
+```
+
+```{r}
+#Average R-Squared
+
+RegC_2_Average  <- WDI_Data0 %>% 
+  split(.$country) %>% 
+  map(~ lm((infmort)~(gdpcap)-1, data=.)) %>% 
+  map(summary) %>%
+  map(glance) %>%
+  map(unlist) %>% 
+  bind_rows() %>% 
+  t %>% 
+  as.data.frame() %>% 
+  select(V1) %>% 
+  filter(!is.nan(V1)) %>%
+  sapply(mean)
+
+RegC_2_Average
+   
+```
+Based on the significant drop in the average of the R-Squared for the regression containing the sqaured GDP per capita as a variable (observed 2 chunks above), I would recommend using the non-squared variable. 

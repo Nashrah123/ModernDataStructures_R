@@ -1,0 +1,70 @@
+---
+title: "Nashrah_Ahmed_HW01"
+author: "Nashrah Ahmed"
+date: "September 19, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+devtools::install_github("rudeboybert/fivethirtyeight")
+library(fivethirtyeight)
+library(DT)
+if (!require("knitr")) install.packages('knitr')
+devtools::session_info('knitr')
+if (!require("ggplot2")) install.packages('ggplot2')
+devtools::session_info('ggplot2')
+```
+
+```{r}
+data(package = "fivethirtyeight")
+```
+
+For this assignment, I'll be using the dataset titled "bad_drivers". The dataset contains statistics about the degree to which certain types of fatal collisions occur by state. 
+
+Reference link with additional background: https://fivethirtyeight.com/features/which-state-has-the-worst-drivers/
+```{r}
+bad_drivers
+
+state <- c('Alabama','Alaska','Arizona')
+num.drivers <- c(18.8,18.1,18.6)
+perc.alcohol <- c(30,25,35)
+test_table2 <- data.frame(state,num.drivers,perc.alcohol)
+
+test_table2
+```
+
+```{r}
+summary(test_table2)
+summary(bad_drivers)
+```
+
+```{r}
+datatable(test_table2)
+datatable(bad_drivers)
+```
+
+```{r}
+new_colnames <- c('state', 'per bln miles, # of drivers', '% due to speeding', '% due to alcohol', '% not distracted', '% no previous accidents', '$, insurance prem', '$ per driver, losses by insurance companies')
+kable(bad_drivers, format = "html", caption = "Statistics for Drivers Involved in Fatal Collisions in 2012",col.names = new_colnames)
+```
+
+```{r}
+num_drivers_Z <- scale(bad_drivers$num_drivers, center = TRUE, scale = TRUE)
+perc_speeding_Z <- scale(bad_drivers$perc_speeding, center = TRUE, scale = TRUE)
+perc.alcohol_Z <- scale(bad_drivers$perc_alcohol, center = TRUE, scale = TRUE)
+
+#reconciling scale function
+(bad_drivers$num_drivers - mean(bad_drivers$num_drivers))/sd(bad_drivers$num_drivers)
+
+test_table3 <- data.frame(bad_drivers$state, num_drivers_Z, perc_speeding_Z, perc.alcohol_Z)
+test_table3
+```
+
+```{r}
+ggplot(test_table3, aes(x=num_drivers_Z, y=perc.alcohol_Z)) + geom_point() + ggtitle("Statistics for Drivers Involved in Fatal Collisions in 2012")
+```
+
+![Test.](/Users/Nashrah/Documents/GitHub/Ahmed_Nashrah/hw01/image/bad-drivers-7.png)
+

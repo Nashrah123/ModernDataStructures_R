@@ -1,0 +1,152 @@
+---
+title: "HW08"
+author: "Nashrah Ahmed"
+date: "November 13, 2017"
+output: html_document
+---
+
+##1. Get HTML
+```{r}
+devtools::install_github("hrbrmstr/xmlview")
+library(xml2)
+library(XML)
+library(httr)
+library(rvest)
+library(stringr)
+library(dplyr)
+
+url_wiki <- 
+  "https://en.wikipedia.org/wiki/Mitch_McConnell"
+wiki <- read_html(url_wiki)
+wiki
+```
+
+##2. Get the info box
+```{r}
+# Extract info box from HTML
+info_box <- html_node(x = wiki, 
+                       xpath = "//table[1]")
+info_box
+```
+
+##3. Make a data frame
+```{r}
+html_name(info_box)
+table <- html_table(info_box)
+table
+
+names(table) <- c("key1", "value")
+table
+
+#remove empty cells
+table1 <- table[!(is.na(table$key1) | table$key1==""), ]
+table1
+
+#remove headers
+table2 <- table1[!(table1$key1=="Personal details" | table1$value=="Personal details"), ]
+table2
+
+table3 <- table2[!(table2$key1=="Military service" | table2$value=="Military service"), ]
+table3
+
+#adjust duplicates & retitle key column
+table3$key <- with(table3, ifelse(key1==value, "Title or Period", table3$key1))
+table3    
+
+final_table1 <- table3 %>% 
+  select_(key = "key", value = "value")
+final_table1
+
+#extract full name & add to data table
+xpath_fullname <- '//span'
+infobox_fullname_node <- html_node(x = info_box, xpath = xpath_fullname)
+infobox_fullname <- html_text(infobox_fullname_node)
+
+final_table <- rbind(c("Full name", infobox_fullname), final_table1)
+final_table
+
+#filtered data
+x <- c("Full name", "Political party" , "Children")
+subset <- final_table %>%
+  filter(key %in% x)
+subset
+
+```
+
+##4. Make a function
+```{r}
+url <- function(first_last) {
+  root <- "https://en.wikipedia.org/wiki"
+  u <- paste(root, "/", first_last, sep = "")
+ return(URLencode(u))
+}
+
+get_wiki_info <- function(first_last) {
+ x <- url(first_last)
+ wikix <- html_session(x)
+ info_boxx <- html_node(x = wikix, 
+                       xpath = "//table[1]")
+ tablex <- html_table(info_boxx)
+ names(tablex) <- c("key1", "value")
+ tablex1 <- tablex[!(is.na(tablex$key1) | tablex$key1==""), ]
+ tablex2 <- tablex1[!(tablex1$key1=="Personal details" | tablex1$value=="Personal details"), ]
+ tablex3 <- tablex2[!(tablex2$key1=="Military service" | tablex2$value=="Military service"), ]
+ tablex3$key <- with(tablex3, ifelse(key1==value, "Title or Period", key1))
+ final_tablex <- tablex3 %>% 
+  select_(key = "key", value = "value")
+ xpath_fullnamex <- '//span'
+ infobox_fullname_nodex <- html_node(x = info_boxx, xpath = xpath_fullnamex)
+ infobox_fullnamex <- html_text(infobox_fullname_nodex)
+ infobox_fullnamex
+ final_tablexx <- rbind(c("Full name", infobox_fullnamex), final_tablex)
+ final_tablexx
+ y <- c("Full name" , "Political party" , "Children")
+ subset <- final_tablexx %>%
+  filter(key %in% y)
+}
+ 
+first_last <- get_wiki_info(first_last = "Mitch_McConnell")
+first_last
+
+first_last <- get_wiki_info(first_last = "Jeff_Flake")
+first_last
+
+first_last <- get_wiki_info(first_last = "Susan_Collins")
+first_last
+
+#get_wiki_info <- function(first_last) {
+ #x <- url(first_last)
+ #wikix <- html_session(x)
+ #info_boxx <- html_node(x = wikix, 
+                       #xpath = "//table[1]")
+ #tablex <- html_table(info_boxx)
+ #names(tablex) <- c("key1", "value")
+ #tablex1 <- tablex[!(is.na(tablex$key1) | tablex$key1==""), ]
+ #tablex2 <- tablex1[!(tablex1$key1=="Personal details" | tablex1$value=="Personal details"), ]
+ #tablex3 <- tablex2[!(tablex2$key1=="Military service" | tablex2$value=="Military service"), ]
+ #tablex3$key <- with(tablex3, ifelse(key1==value, "Title or Period", key1))
+ #final_tablex <- tablex3 %>% 
+  #select_(key = "key", value = "value")
+ #xpath_fullnamex <- '//span'
+ #infobox_fullname_nodex <- html_node(x = info_boxx, xpath = xpath_fullnamex)
+ #infobox_fullnamex <- html_text(infobox_fullname_nodex)
+ #infobox_fullnamex
+ #final_tablexx <- rbind(c("Full name", infobox_fullnamex), final_tablex)
+ #final_tablexx
+ #y <- c("Full name" , "Political party" , "Children")
+ #if(final_tablexx$key != "Children") {
+ #subset1 <- final_tablexx %>%
+  #filter(key %in% y)
+ #subset2 <- rbind(subset1, c("NA", "NA"))
+ #return(subset2)
+  #} else {
+ #subset3 <- final_tablexx %>%
+  #filter(key %in% y)
+ #return(subset3)
+ 
+#first_last <- get_wiki_info(first_last = "Jeff_Flake")
+#first_last
+
+#first_last <- get_wiki_info(first_last = "Susan_Collins")
+#first_last
+```

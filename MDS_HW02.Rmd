@@ -1,0 +1,172 @@
+---
+title: "HW02"
+author: "Nashrah Ahmed"
+date: "September 22, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r view data}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+raw_data <- read.csv(file="/users/Nashrah/Desktop/Columbia_QMSS/Fall 2017 Courses/ModernDataStructures/U.S._Chronic_Disease_Indicators__CDI_.csv", na = "NA")
+head(raw_data)
+```
+
+```{r}
+F_Dataset <- raw_data %>% 
+  filter(Question == "Binge drinking prevalence among adults aged >= 18 years", Topic == "Alcohol", DataValueType == "Crude Prevalence", Stratification1 == "Female")
+
+F_Dataset2 <- F_Dataset %>% 
+  select_(year = "YearStart", stateabb = "LocationAbbr", state = "LocationDesc", binge_female = "DataValue")
+
+F_Dataset2[,4] <- as.numeric(as.character( F_Dataset2[,4] ))
+
+F_Dataset3 <- F_Dataset2 %>% 
+  group_by_(.dots=c("year","stateabb","state"))
+  summarise(F_Dataset3, sum(binge_female))
+
+F_Dataset3
+```
+
+```{r}
+M_Dataset <- raw_data %>% 
+  filter(Question == "Binge drinking prevalence among adults aged >= 18 years", Topic == "Alcohol", DataValueType == "Crude Prevalence", Stratification1 == "Male")
+
+M_Dataset2 <- M_Dataset %>% 
+  select_(year = "YearStart", stateabb = "LocationAbbr", state = "LocationDesc", binge_male = "DataValue")
+
+M_Dataset2[,4] <- as.numeric(as.character( M_Dataset2[,4] ))
+
+M_Dataset3 <- M_Dataset2 %>% 
+  group_by_(.dots=c("year","stateabb","state"))
+  summarise(M_Dataset3, sum(binge_male))
+  
+M_Dataset3
+
+MF_Dataset4 <- left_join(F_Dataset3, M_Dataset3, by = c("year" = "year", "stateabb" = "stateabb", "state" = "state"))
+
+Final_Dataset <- MF_Dataset4 %>%
+  mutate(binge_all = binge_female + binge_male)
+
+Final_Dataset
+```
+
+```{r}
+P_Dataset <- raw_data %>% 
+  filter(Question == "Poverty")
+
+P_Dataset2 <- P_Dataset %>% 
+  select_(year = "YearStart", stateabb = "LocationAbbr", state = "LocationDesc", poverty = "DataValue")
+
+P_Dataset2[,4] <- as.numeric(as.character( P_Dataset2[,4] ))
+
+P_Dataset3 <- P_Dataset2 %>% 
+  group_by_(.dots=c("year","stateabb","state"))
+  summarise(P_Dataset3, sum(poverty))
+  
+binge_clean <- (merge(Final_Dataset, P_Dataset3, by = c('year', 'stateabb', 'state'), all = T))
+binge_clean
+```
+write.csv(binge_clean, 'binge_clean.csv')
+
+Top 10 Binge Drinking States
+```{r}
+
+Final_Dataset1 <- arrange(Final_Dataset, desc(binge_all))
+
+Final_Dataset2 <- Final_Dataset1 %>% 
+  filter(year == "2015")
+
+binge_topstates10 <- Final_Dataset2 %>% 
+  group_by(state) %>%
+  head(n = 10)
+
+binge_topstates10
+```
+```{r}
+ggplot(binge_clean, aes(x=binge_all, y=poverty)) + geom_point() + geom_smooth(method = lm)
+
+#It appears there is no linear relationship between poverty prevalance and overall prevalance of binge drinking. 
+```
+
+```{r}
+#I realize this is an extremely inefficient way to do this and am hoping to learn shortcuts (tried best to figure out the shortcut but ran short of time):
+
+x <- Final_Dataset %>%
+  filter(year == "2011")
+  group_by_(x, "state")
+
+x1 <- summarise(x, b_2011 = sum(binge_all))
+x1 
+
+x2 <- Final_Dataset %>%
+  filter(year == "2012")
+  group_by_(x2, "state")
+x3 <- summarise(x2, b_2012 = sum(binge_all))
+x3
+
+x4 <- left_join(x1, x3, by = c("state" = "state"))
+x4
+
+x5 <- Final_Dataset %>%
+  filter(year == "2013")
+  group_by_(x5, "state")
+
+x6 <- summarise(x5, b_2013 = sum(binge_all))
+x6 
+
+x7 <- left_join(x4, x6, by = c("state" = "state"))
+x7
+
+x8 <- Final_Dataset %>%
+  filter(year == "2014")
+  group_by_(x8, "state")
+x9 <- summarise(x8, b_2014 = sum(binge_all))
+x9
+
+x10 <- left_join(x7, x9, by = c("state" = "state"))
+x10
+
+x11 <- Final_Dataset %>%
+  filter(year == "2015")
+  group_by_(x11, "state")
+x12 <- summarise(x11, b_2015 = sum(binge_all))
+x12
+
+x13 <- left_join(x10, x12, by = c("state" = "state"))
+x13
+
+Y <- x13 %>%
+  mutate(avg_growth_rate = ((((b_2012-b_2011)/b_2011) + ((b_2013-b_2012)/b_2012) + ((b_2014-b_2013)/b_2013) + ((b_2015-b_2014)/b_2014)) / 4) * 100)
+
+Y
+
+Y1 <- arrange(Y, desc(avg_growth_rate))
+
+Y2 <- Y1 %>% 
+  group_by(state) %>%
+  head(n = 5)
+
+Y3 <- Y2 %>%
+  select(state, largest_increases_avg_growth_rate = avg_growth_rate)
+
+Y3
+
+```
+
+```{r}
+Y4 <- Y1 %>% 
+  group_by(state) %>%
+  tail(n = 6)
+
+Y5 <- Y4 %>%
+  select(state, largest_decreases_avg_growth_rate = avg_growth_rate)
+
+Y5
+```
+

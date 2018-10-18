@@ -1,0 +1,210 @@
+---
+title: "Nashrah_Ahmed_HW02"
+author: "Nashrah Ahmed"
+date: "October 1, 2017"
+output: html_document
+---
+
+Question 1:
+99 bottles of beer on the wall, 99 bottles of beer.
+Take one down, pass it around, 98 bottles of beer on the wall...
+No more bottles of beer on the wall, no more bottles of beer.
+Go to the store and buy some more, 99 bottles of beer on the wall.
+```{r}
+#loop
+n <- 99
+beersong <-
+if (n==1) {
+    cat("\n",n," bottle of beer on the wall, ",n,
+        " bottles of beer.\nTake one down and pass it around,",
+        " no more bottles of beer on the wall.\n", sep="")
+    cat("\nNo more bottles of beer on the wall, no more bottles of beer.\n",
+        "Go to the store and buy some more, 99 bottles of beer on the wall.\n", sep="")
+  } else {
+    cat("\n",n," bottles of beer on the wall, ",n,
+        " bottles of beer.\nTake one down and pass it around, ",
+        n-1, " more bottles of beer on the wall.\n", sep="")
+  }
+
+
+#function 
+beersong <- function(n) {
+  if (n==1) {
+    cat("\n",n," bottle of beer on the wall, ",n,
+        " bottles of beer.\nTake one down and pass it around,",
+        " no more bottles of beer on the wall.\n", sep="")
+    cat("\nNo more bottles of beer on the wall, no more bottles of beer.\n",
+        "Go to the store and buy some more, 99 bottles of beer on the wall.\n", sep="")
+  } else {
+    cat("\n",n," bottles of beer on the wall, ",n,
+        " bottles of beer.\nTake one down and pass it around, ",
+        n-1, " more bottles of beer on the wall.\n", sep="")
+    return(beersong(n-1))
+  }
+}
+
+#test for full song
+beersong(99)
+
+```
+
+function (print 95:99)
+```{r cars}
+beersong1 <- function(n) {
+  if (n==95) {
+    cat("\n",n," bottles of beer on the wall, ",n,
+        " bottles of beer.\nTake one down and pass it around, ",
+        n-1, " more bottles of beer on the wall.\n", sep="")
+  } else {
+    cat("\n",n," bottles of beer on the wall, ",n,
+        " bottles of beer.\nTake one down and pass it around, ",
+        n-1, " more bottles of beer on the wall.\n", sep="")
+    return(beersong1(n-1))
+  }
+}
+
+beersong1(99)
+
+```
+
+plot loop without function
+``````{r}
+n <- 10
+plot <- {
+    plot(1, type="n", xlab="x", ylab="y", xlim = c(0, n+1), ylim = c(0, n+1))
+    for (i in 0:n) {
+      segments(0,i,10,i)
+      segments(i,0,i,0)
+      points(i,i)
+    }
+}  
+
+```
+
+plot loop with function
+```{r}
+plot_f <- function(n=10) {
+    plot(1, type="n", xlab="x", ylab="y", xlim = c(0, n+1), ylim = c(0, n+1))
+    for (i in 0:n) {
+      segments(0,i,10,i)
+      segments(i,0,i,0)
+      points(i,i)
+    }
+}  
+
+plot_f()
+```
+
+individual stat functions
+```{r}
+df <- data.frame(
+  a = c(5, 10, 15, 20))
+
+output <- vector("double", ncol(df))
+output
+
+for (i in seq_along(df)) {            
+ output[1] <- mean(df[[1]])
+}
+output[1]
+
+col_mean <- function(df) {
+  for (i in seq_along(df)) {
+  output[1] <- mean(df[[1]])
+  }
+  output
+}
+col_mean(df)
+
+col_median <- function(df) {
+  for (i in seq_along(df)) {
+  output[1] <- median(df[[1]])
+  }
+  output
+}
+col_median(df)
+
+col_max <- function(df) {
+  for (i in seq_along(df)) {
+  output[1] <- max(df[[1]])
+  }
+  output
+}
+col_max(df)
+
+col_min <- function(df) {
+  for (i in seq_along(df)) {
+  output[1] <- min(df[[1]])
+  }
+  output
+}
+col_min(df)
+
+```
+
+general function for desc stats
+```{r}
+col_summary <- function(df, stat) {
+  output <- vector("numeric", length(df))
+  for (i in seq_along(df)) {
+    output[1] <- stat(df[[1]])
+  }
+  output
+}
+
+col_summary(df, stat = min)
+col_summary(df, stat = max)
+col_summary(df, stat = median)
+
+```
+
+```{r}
+#error #1: empty vector
+df_error <- data.frame(
+  a = c())
+
+col_summary_error <- function(df_error, stat) {
+  output <- vector("numeric", length(df_error))
+  for (i in seq_along(df_error)) {
+    output[1] <- stat(df_error[[1]])
+  }
+  output
+}
+
+col_summary_error(df_error, stat = max)
+```
+
+```{r}
+#error #2: NAs
+df_error1 <- data.frame(
+  b = letters[1:5])
+
+col_summary_error1 <- function(df_error1, stat) {
+  output <- vector("numeric", length(df_error1))
+  for (i in seq_along(df_error1)) {
+    output[1] <- stat(df_error1[[1]])
+  }
+  output
+}
+
+print(col_summary_error1(df_error1, stat = mean))
+
+```
+
+```{r}
+#stop if vector is empty or contains NAs
+col_summary_error2 <- function(vector, stat) {
+  if(length(vector) == 0) {
+    return('no values')}
+  if(all(is.na(vector))) {
+    return('has NAs')}
+}
+vector <- c(NA, NA, NA)
+col_summary_error2(vector)
+
+```
+
+```{r}
+vector1 <- c()
+col_summary_error2(vector1)
+```

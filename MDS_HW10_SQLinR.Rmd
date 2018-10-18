@@ -1,0 +1,114 @@
+---
+title: "HW10"
+author: "Nashrah Ahmed"
+date: "November 19, 2017"
+output: html_document
+---
+
+## 1. Getting to know the data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DBI)
+
+witch_con <- dbConnect(RMySQL::MySQL(),
+      dbname = "witchcraft",
+      host = "tbrambor.cqejfaflibld.us-east-2.rds.amazonaws.com",
+      port = 3306,
+      user = "student",
+      password = "mds-is-fun")
+
+witch_con
+```
+
+```{sql, connection = "witch_con"}
+SHOW TABLES
+
+```
+
+```{sql, connection = "witch_con"}
+DESCRIBE accused
+
+```
+
+```{sql, connection = "witch_con"}
+SELECT COUNT(firstname) as "# of people accused"
+FROM accused
+
+```
+
+```{sql, connection = "witch_con"}
+SELECT firstname, sex, age
+FROM accused
+LIMIT 5
+
+```
+
+
+```{sql, connection = "witch_con"}
+SELECT COUNT(age) as "# of valid data for age"
+FROM accused
+WHERE age <> ""
+
+```
+
+```{sql, connection = "witch_con"}
+SELECT DISTINCT(occupation) "unique occupations"
+FROM accused
+
+```
+
+##2..Seeing the Devil
+```{sql, connection = "witch_con"}
+
+SELECT DISTINCT(devil_type) as "types of devils"
+FROM devilappearance
+```
+
+```{sql, connection = "witch_con"}
+SELECT COUNT(devil_text) as "Devil Text Contains 'Black'"
+FROM   devilappearance
+WHERE  devil_text LIKE 'black%' OR '%black' OR '%Black' OR 'Black%'
+
+```
+```{sql, connection = "witch_con"}
+SELECT ROUND((P.subtotal/P.total)*100) as "Proportion of Devil Type: Male (%)"
+FROM(
+     SELECT COUNT(CASE WHEN devil_type IN ('Male') then 1 ELSE NULL END ) subtotal,
+            COUNT(devil_type) total
+       FROM devilappearance 
+     ) P
+   
+```
+
+##3. The trial
+```{sql, connection = "witch_con"}
+SELECT ROUND(AVG(female_accusers + male_accusers)) as "Avg # of Accusers Per Trial"
+FROM   trial
+WHERE female_accusers <> "" OR male_accusers <> ""
+
+```
+
+```{sql, connection = "witch_con"}
+SELECT ROUND(MAX(female_accusers + male_accusers)) "Max # of Accusers Per Trial"
+FROM   trial
+WHERE female_accusers <> "" OR male_accusers <> ""
+
+```
+
+```{sql, connection = "witch_con"}
+SELECT sentence as "Sentence", COUNT(sentence) as "# of Sentences"
+FROM trial
+WHERE sentence <> ""
+GROUP BY sentence
+ORDER BY COUNT(sentence) DESC
+
+```
+##Based on the output, it seems like guilty verdicts have the highest average number of accusers.
+```{sql, connection = "witch_con"}
+SELECT verdict as "Verdict", ROUND(AVG(female_accusers + male_accusers)) as "Avg # of Accusers"
+FROM trial
+WHERE verdict <> "" AND female_accusers <> "" OR male_accusers <> ""
+GROUP BY verdict
+ORDER BY ROUND(AVG(female_accusers + male_accusers)) DESC
+
+```

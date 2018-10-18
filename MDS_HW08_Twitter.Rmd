@@ -1,0 +1,145 @@
+---
+title: "HW08"
+author: "Nashrah Ahmed"
+date: "November 6, 2017"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(qpcR)
+library(curl)
+library(httr)
+library(ROAuth)
+library(twitteR)
+library(jsonlite)
+library(RCurl)
+```
+##1. Choose an API
+
+a) Choose an API and briefly describe the type of data you can obtain from it. b) Provide a link to the API documentation and
+c) the base URL of the API you intend to use.
+```{r}
+#I chose the Twitter API - the API contains two RESTful APIs. One which inlcudes user statuses, timeline updates, and other user information (REST API). The other includes methods to interact with data on Twitter Search and trends (Search API). I would like to search tweets that contain language related to gun control. 
+#doc <- https://developer.twitter.com/en/docs/tweets/search/api-reference/full-archive-search#DataEndpoint
+#endpoint <- http://twitter.com/statuses/
+#url <- https://api.twitter.com/1.1/search/tweets.json
+
+```
+
+##2. Authentication
+a) Briefly explain how the API authenticates the user. b) Apply for an API key if necessary and provide the information (with relevant URL) how that can be done.
+```{r}
+# All requests to the Full-Archive Search API must use HTTP Basic Authentication, constructed from a valid email address and password combination used to log into your account at https://console.gnip.com. Credentials must be passed as the Authorization header for each request.
+
+# To obtain a key for use of Twitter API, visit: https://dev.twitter.com/apps and click Create New App. Provide information requested and create the app. The consumer key will then be provided.
+
+# Download "cacert.pem" file
+download.file(url="http://curl.haxx.se/ca/cacert.pem",destfile="cacert.pem")
+
+# Credentials for access
+cred <- OAuthFactory$new(consumerKey='Zc5HDii205lq2lLncgEOJFabl',
+      consumerSecret='hqYiKkTKQDASnVUUOk8HHs5Acw1gmowjamZOg3DYpwpAAxdiBD',
+      oauthKey='D3IjndWF6GWltZPSL3WSH3WEAvcj1Rf',
+      oauthSecret='w3o8FZi841BjTXgWdp1qDKdQWmX5swtVvCCqwfaIqAnBF',
+      requestURL='https://api.twitter.com/oauth/request_token',
+      accessURL='https://api.twitter.com/oauth/access_token',
+      authURL='https://api.twitter.com/oauth/authorize')
+
+api_key <- cred$consumerKey
+ 
+api_secret <- cred$consumerSecret
+ 
+access_token <- cred$oauthKey
+ 
+access_token_secret <- cred$oauthSecret
+ 
+setup_twitter_oauth(api_key,api_secret)
+
+# Save for later use for Windows
+save(cred, file="twitter authentication.Rdata")
+load("twitter authentication.Rdata")
+
+
+# Find OAuth settings for twitter:
+# https://dev.twitter.com/docs/auth/oauth
+oauth_endpoints("twitter")
+
+myapp <- oauth_app("twitter",
+  key = api_key,
+  secret = api_secret
+)
+
+# Get OAuth credentials
+options(httr_oauth_cache=T)  
+
+twitter_token <- oauth1.0_token(oauth_endpoints("twitter"), myapp)
+twitter_token
+
+# Use API
+url <- GET("https://api.twitter.com/1.1/search/tweets.json?q=%23guncontrol&exclude=retweets&count=100&include_entities=false",
+  config(token = twitter_token))
+stop_for_status(url)
+tweets_guncon <- content(url)
+
+# test status
+http_status(url)
+http_type(url)
+
+#create dataset
+json2 = jsonlite::fromJSON(toJSON(tweets_guncon))
+statuses <-as.data.frame(json2$statuses)
+print(dim(statuses))
+print(names(statuses))
+text <- as.character(statuses[1:100,4])
+text1 <- as.data.frame(text)
+fav_count <- as.numeric(unlist(statuses[1:100,20]))
+fav_count1 <- as.data.frame(fav_count)
+retwt_count <- as.numeric(unlist(statuses[1:100,19]))
+retwt_count1 <- as.data.frame(retwt_count)
+when <- as.character.Date(statuses[1:100,1])
+when1 <- as.data.frame(when)
+
+# simple summary stats
+new_twitter <- qpcR:::cbind.na(text1, fav_count1, when1, retwt_count1)
+max(as.integer(new_twitter$fav_count), na.rm=TRUE)
+max(as.integer(new_twitter$retwt_count), na.rm=TRUE)
+# status with most favorites
+# status with most retweets
+#new_twitter$text[new_twitter$fav_count=15]
+#new_twitter$text[new_twitter$retwt_count=6]
+
+#save data
+saveRDS(new_twitter, "data.rds")
+#readRDS("data.rds")
+
+```
+
+##5. API Client
+```{r}
+url1 <- function(hashtag, count) {
+  root <- "https://api.twitter.com/1.1/search/tweets.json"
+  u <- paste(root, "?q=", hashtag, "&count=", count, "&include_entities=false", sep = "")
+ return(URLencode(u))
+}
+
+## shortened function
+
+f_tw <- function(hashtag, count) {
+ x <- url1(hashtag, count)
+ x1 <- GET(x, config(token = twitter_token))
+ if(http_status(x1)$reason=="OK"){
+   return(content(x1))
+   } else {
+     return("error")
+ }
+}
+
+hashtag <- f_tw(hashtag = "%23guncontrol", count = "5")
+
+saveRDS(hashtag, "api_client_output.RDS")
+#readRDS("api_client_output.RDS")
+
+## could not detect error in time
+```
